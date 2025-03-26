@@ -114,7 +114,7 @@ public class IconPropsParser {
                 byte modifier = modifiers.get(split[0],
                         0).byteValue();
                 String idHex = split[1];
-                int id = Integer.parseInt(idHex, idHex.startsWith("#") ? 16 : 10);
+                int id = Integer.parseInt(idHex.replace("#",""), idHex.startsWith("#") ? 16 : 10);
                 String texture = split[2].replace("@",modId);
                 String name = texture;
                 if(split.length > 3) name = split[3];
