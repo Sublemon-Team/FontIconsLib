@@ -16,6 +16,8 @@ import mindustry.ui.Fonts;
 
 import java.util.Scanner;
 
+import static mindustry.Vars.mods;
+
 /*
 Example file:
 icon FF00 subvoyage-ceramic-burner
@@ -35,7 +37,11 @@ public class IconPropsParser {
     public static void start() {
         teamIcons = new ObjectMap<>();
         icons = new ObjectMap<>();
-        Seq<Fi> found = Seq.with(Vars.tree.get("assets/icons").list()).select(f -> f.extEquals("icons"));
+
+        Seq<Fi> found = Seq.with();
+        mods.listFiles("icons",(m,fi) -> {
+            if(fi.extEquals("icons")) found.add(fi);
+        });
         Seq<Font> fonts = Seq.with(Fonts.def, Fonts.outline);
         Texture uitex = Core.atlas.find("logo").texture;
         int size = (int)(Fonts.def.getData().lineHeight/Fonts.def.getData().scaleY);
@@ -48,7 +54,15 @@ public class IconPropsParser {
         }
 
         for (Fi fi : found) {
-            if(fi.nameWithoutExtension().equals("yourmodid")) continue;
+            if(!fi.exists()) {
+                Log.debug("[FontIconLib:@] Skipping, doesn't have icons",fi.nameWithoutExtension());
+                continue;
+            }
+            if(fi.nameWithoutExtension().equals("yourmodid")) {
+                Log.debug("[FontIconLib:@] Skipping, example file",fi.nameWithoutExtension());
+                continue;
+            }
+            Log.debug("[FontIconLib:@] Processing...",fi.nameWithoutExtension());
             IconInfo[] info = read(fi);
             int line = 0;
             for (IconInfo iconInfo : info) {
@@ -92,6 +106,7 @@ public class IconPropsParser {
 
                 Log.debug("[FontIconLib:@] Loaded glyph: @ - @ - #@",fi.nameWithoutExtension(),iconInfo.id,iconInfo.name,Integer.toHexString(iconInfo.id));
             }
+            Log.debug("[FontIconLib:@] Processed",fi.nameWithoutExtension());
         }
     }
 
