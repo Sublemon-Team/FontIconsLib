@@ -76,20 +76,22 @@ public class IconPropsParser {
                     continue;
                 }
                 if(iconInfo.id == -1) iconInfo.autoId();
-                Vec2 out = Scaling.fit.apply(region.width, region.height, size, size);
+                int wsize = (int) (size * iconInfo.widthMultiplier);
+                int hsize = (int) (size * iconInfo.heightMultiplier);
+                Vec2 out = Scaling.fit.apply(region.width, region.height, wsize, hsize);
                 Font.Glyph glyph = new Font.Glyph();
                 glyph.id = iconInfo.id;
                 glyph.srcX = 0;
                 glyph.srcY = 0;
-                glyph.width = (int)out.x;
-                glyph.height = (int)out.y;
+                glyph.width = (int) out.x;
+                glyph.height = (int) out.y;
                 glyph.u = region.u;
                 glyph.v = region.v2;
                 glyph.u2 = region.u2;
                 glyph.v2 = region.v;
                 glyph.xoffset = 0;
-                glyph.yoffset = -size;
-                glyph.xadvance = size;
+                glyph.yoffset = -hsize;
+                glyph.xadvance = (int) (wsize + iconInfo.advance);
                 glyph.kerning = null;
                 glyph.fixedWidth = true;
                 glyph.page = 0;
@@ -168,8 +170,8 @@ public class IconPropsParser {
                 if(lineStr.startsWith("#")) continue;
                 if(lineStr.startsWith("priority ")) continue;
                 String[] split = lineStr.split(" ");
-                if(split.length < 3 || split.length > 4) {
-                    Log.warn("[FontIconLib:@] Incorrect format | line @, @\n    @",modId,line,lineStr,"Expected format: <type> <hexId> <texture> [name]");
+                if(split.length < 3 || split.length > 7) {
+                    Log.warn("[FontIconLib:@] Incorrect format | line @, @\n    @",modId,line,lineStr,"Expected format: <type> <hexId> <texture> [name] [width] [height] [advance]");
                     continue;
                 }
                 byte modifier = modifiers.get(split[0],
@@ -179,8 +181,14 @@ public class IconPropsParser {
                 int id = autoId ? -1 : parseCode(idHex);
                 String texture = split[2].replace("@",modId);
                 String name = texture;
+                float widthMult = 1f;
+                float heightMult = 1f;
+                float advance = 0f;
                 if(split.length > 3) name = split[3];
-                var ico = new IconInfo(modifier, id, texture, name, modifier == 1 ? name : null);
+                if(split.length > 4) widthMult = Float.parseFloat(split[4]);
+                if(split.length > 5) heightMult = Float.parseFloat(split[5]);
+                if(split.length > 6) advance = Float.parseFloat(split[6]);
+                var ico = new IconInfo(modifier, id, texture, name, modifier == 1 ? name : null, widthMult, heightMult, advance);
                 icos.add(ico);
             }
         }
@@ -222,12 +230,19 @@ public class IconPropsParser {
         public String name;
         public String team;
 
-        public IconInfo(byte modifier, int id, String texture, String name, String team) {
+        public float widthMultiplier = 1f;
+        public float heightMultiplier = 1f;
+        public float advance = 0f;
+
+        public IconInfo(byte modifier, int id, String texture, String name, String team, float width, float height, float advance) {
             this.modifier = modifier;
             this.id = id;
             this.texture = texture;
             this.name = name;
             this.team = team;
+            this.widthMultiplier = width;
+            this.heightMultiplier = height;
+            this.advance = advance;
         }
 
         public void autoId() {
