@@ -3,7 +3,7 @@ name: "font-icon-lib"
 author: "Sublemon Team"
 main: "fonticolib.IcoLib"
 description: "A library for adding icons to game font."
-version: 1.1
+version: 1.2
 minGameVersion: 145
 java: true
 hidden: true
