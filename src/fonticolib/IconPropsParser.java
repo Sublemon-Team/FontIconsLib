@@ -10,7 +10,6 @@ import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Log;
 import arc.util.Scaling;
-import mindustry.Vars;
 import mindustry.game.Team;
 import mindustry.ui.Fonts;
 
@@ -34,14 +33,12 @@ public class IconPropsParser {
     public static ObjectMap<String,Character> icons = new ObjectMap<>();
     public static ObjectMap<Team, Character> teamIcons = new ObjectMap<>();
 
+    public static int lastAvailable = 0;
+
     public static void start() {
         teamIcons = new ObjectMap<>();
         icons = new ObjectMap<>();
 
-        Seq<Fi> found = Seq.with();
-        mods.listFiles("icons",(m,fi) -> {
-            if(fi.extEquals("icons")) found.add(fi);
-        });
         Seq<Font> fonts = Seq.with(Fonts.def, Fonts.outline);
         Texture uitex = Core.atlas.find("logo").texture;
         int size = (int)(Fonts.def.getData().lineHeight/Fonts.def.getData().scaleY);
@@ -52,6 +49,8 @@ public class IconPropsParser {
             if(team.name == null || team.name.startsWith("team#")) continue;
             namedTeams.add(team);
         }
+
+        Seq<Fi> found = sortedConfigs();
 
         for (Fi fi : found) {
             if(!fi.exists()) {
@@ -75,6 +74,7 @@ public class IconPropsParser {
                     Log.warn("[FontIconLib:@] Texture is not in UI atlas: @ | line @",fi.nameWithoutExtension(),iconInfo.id,line);
                     continue;
                 }
+                if(iconInfo.id == -1) iconInfo.autoId();
                 Vec2 out = Scaling.fit.apply(region.width, region.height, size, size);
                 Font.Glyph glyph = new Font.Glyph();
                 glyph.id = iconInfo.id;
@@ -110,6 +110,33 @@ public class IconPropsParser {
         }
     }
 
+    public static Seq<Fi> sortedConfigs() {
+        Seq<Fi> found = Seq.with();
+        ObjectMap<Fi, Integer> priorities = new ObjectMap<>();
+
+
+        mods.listFiles("icons",(m,fi) -> {
+            if(!fi.extEquals("icons")) return;
+            int index = found.size;
+            int priority = 0;
+            found.add(fi);
+            try(Scanner scan = new Scanner(fi.read(512))) {
+                if(scan.hasNextLine()) {
+                    String line = scan.nextLine();
+                    if(line.startsWith("priority ")) {
+                        String str = line.replace("priority ","");
+                        priority = Integer.parseInt(str);
+                    }
+                }
+            }
+            priorities.put(fi,priority);
+        });
+
+        found.sort((fi) -> -priorities.get(fi,0));
+
+        return found;
+    }
+
     public static IconInfo[] read(Fi fi) {
         String modId = fi.nameWithoutExtension();
         Seq<IconInfo> icos = Seq.with();
@@ -121,6 +148,7 @@ public class IconPropsParser {
                 String lineStr = scan.nextLine();
                 if(lineStr.isEmpty()) continue;
                 if(lineStr.startsWith("#")) continue;
+                if(lineStr.startsWith("priority ")) continue;
                 String[] split = lineStr.split(" ");
                 if(split.length < 3 || split.length > 4) {
                     Log.warn("[FontIconLib:@] Incorrect format | line @, @\n    @",modId,line,lineStr,"Expected format: <type> <hexId> <texture> [name]");
@@ -129,19 +157,43 @@ public class IconPropsParser {
                 byte modifier = modifiers.get(split[0],
                         0).byteValue();
                 String idHex = split[1];
-                int id = Integer.parseInt(idHex.replace("#",""), idHex.startsWith("#") ? 16 : 10);
+                boolean autoId = idHex.equals("auto");
+                int id = autoId ? -1 : parseCode(idHex);
                 String texture = split[2].replace("@",modId);
                 String name = texture;
                 if(split.length > 3) name = split[3];
-                icos.add(new IconInfo(modifier, id, texture, name, modifier == 1 ? name : null));
+                var ico = new IconInfo(modifier, id, texture, name, modifier == 1 ? name : null);
+                icos.add(ico);
             }
         }
         return icos.toArray();
     }
 
+    public static int parseCode(String code) {
+        return Integer.parseInt(code.replace("#",""), code.startsWith("#") ? 16 : 10);
+    }
+
+    public static int lastAvailable() {
+        for (int i = lastAvailable; i < 65536; i++) {
+            if(isAvailable(i)) {
+                lastAvailable = i;
+                break;
+            }
+        }
+        return lastAvailable;
+    }
+
+    public static boolean isAvailable(int glyph) {
+        return font().getGlyph((char) glyph) == null || font().getGlyph((char) glyph) == font().missingGlyph || !font().hasGlyph((char) glyph);
+    }
+
     public static void loadTeams() {
         teamIcons.each((team,ch) ->
                 team.emoji = "[#"+team.color.toString()+"]"+ch+"[]");
+    }
+
+    public static Font.FontData font() {
+        return Fonts.def.getData();
     }
 
     public static class IconInfo {
@@ -158,6 +210,11 @@ public class IconPropsParser {
             this.texture = texture;
             this.name = name;
             this.team = team;
+        }
+
+        public void autoId() {
+            if(isAvailable(lastAvailable)) id = lastAvailable;
+            else id = lastAvailable();
         }
     }
 }
