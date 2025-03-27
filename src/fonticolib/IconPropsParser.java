@@ -14,6 +14,7 @@ import mindustry.game.Team;
 import mindustry.ui.Fonts;
 
 import java.util.Scanner;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static mindustry.Vars.mods;
 
@@ -108,6 +109,23 @@ public class IconPropsParser {
             }
             Log.debug("[FontIconLib:@] Processed",fi.nameWithoutExtension());
         }
+        updateBundles();
+    }
+
+    public static void updateBundles() {
+        Log.info("[FontIconLib] Updating bundles");
+        var bundle = Core.bundle;
+        do {
+            var props = bundle.getProperties();
+            props.each((k,v) -> {
+                String[] str = new String[] {v};
+                icons.each((name,ch) ->
+                        str[0] = str[0].replace("[fico-"+name+"]",ch+""));
+                props.put(k,str[0]);
+            });
+            bundle = bundle.getParent();
+        }
+        while(bundle != null);
     }
 
     public static Seq<Fi> sortedConfigs() {
