@@ -34,11 +34,12 @@ public class IconPropsParser {
     public static ObjectMap<String,Character> icons = new ObjectMap<>();
     public static ObjectMap<Team, Character> teamIcons = new ObjectMap<>();
 
-    public static int lastAvailable = 0;
+    public static int lastAvailable = 128;
 
     public static void start() {
         teamIcons = new ObjectMap<>();
         icons = new ObjectMap<>();
+        lastAvailable = 128; // it can get into reserved characters such as \n, so we use an offset
 
         Seq<Font> fonts = Seq.with(Fonts.def, Fonts.outline);
         Texture uitex = Core.atlas.find("logo").texture;
