@@ -6,9 +6,11 @@ import arc.graphics.Texture;
 import arc.graphics.g2d.Font;
 import arc.graphics.g2d.TextureRegion;
 import arc.math.geom.Vec2;
+import arc.struct.ObjectIntMap;
 import arc.struct.ObjectMap;
 import arc.struct.Seq;
 import arc.util.Log;
+import arc.util.Reflect;
 import arc.util.Scaling;
 import mindustry.game.Team;
 import mindustry.ui.Fonts;
@@ -31,7 +33,7 @@ public class IconPropsParser {
                     "icon",0,
                     "team-icon",1
             );
-    public static ObjectMap<String,Character> icons = new ObjectMap<>();
+    public static ObjectMap<String,Integer> icons = new ObjectMap<>();
     public static ObjectMap<Team, Character> teamIcons = new ObjectMap<>();
 
     public static int lastAvailable = 128;
@@ -98,7 +100,7 @@ public class IconPropsParser {
                 glyph.page = 0;
 
                 fonts.each(f -> f.getData().setGlyph(iconInfo.id, glyph));
-                icons.put(iconInfo.name,(char) iconInfo.id);
+                icons.put(iconInfo.name,iconInfo.id);
 
                 if(iconInfo.modifier == 1) {
                     Team team = namedTeams.find(t -> t.name.equals(iconInfo.team));
@@ -112,7 +114,23 @@ public class IconPropsParser {
             }
             Log.debug("[FontIconLib:@] Processed",fi.nameWithoutExtension());
         }
+        updateVanilla();
         updateBundles();
+    }
+
+    public static void updateVanilla() {
+        try {
+            ObjectIntMap<String> unicode = Reflect.get(Fonts.class, "unicodeIcons");
+            icons.each(unicode::put);
+        } catch (Exception e) {
+
+        }
+        try {
+            ObjectMap<String, String> string = Reflect.get(Fonts.class, "stringIcons");
+            icons.each((k,v) -> string.put(k,((char) (int) v)+""));
+        } catch (Exception e) {
+
+        }
     }
 
     public static void updateBundles() {
@@ -123,7 +141,7 @@ public class IconPropsParser {
             props.each((k,v) -> {
                 String[] str = new String[] {v};
                 icons.each((name,ch) ->
-                        str[0] = str[0].replace("[fico-"+name+"]",ch+""));
+                        str[0] = str[0].replace("[fico-"+name+"]",((char) (int) ch)+""));
                 props.put(k,str[0]);
             });
             bundle = bundle.getParent();
