@@ -4,6 +4,6 @@ author: "Sublemon Team"
 main: "fonticolib.IcoLib"
 description: "A library for adding icons to game font."
 version: 1.4
-minGameVersion: 145
+minGameVersion: 147
 java: true
 hidden: true
